@@ -1,0 +1,32 @@
+[tool.poetry]
+name = "jupyter-labs"
+version = "0.1.0"
+description = "Labs Jupyter pour la formation IA"
+authors = ["Fabien CHERER <fcherer@finaxys.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+openai = "^1.77.0"
+dotenv = "^0.9.9"
+langchain = "^0.3.25"
+langchain-openai = "^0.3.16"
+pandas = "^2.2.3"
+langchain-community = "^0.3.23"
+pypdf = "^5.4.0"
+lark = "^1.2.2"
+langchain-chroma = "^0.2.3"
+scikit-learn = "^1.6.1"
+langchain-cohere = "^0.4.4"
+redlines = "^0.5.1"
+panel = "^1.6.3"
+jupyter-bokeh = "^4.0.5"
+
+
+[tool.poetry.group.dev.dependencies]
+notebook = "^7.4.1"
+ipykernel = "^6.29.5"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
