@@ -21,6 +21,12 @@ langchain-cohere = "^0.4.4"
 redlines = "^0.5.1"
 panel = "^1.6.3"
 jupyter-bokeh = "^4.0.5"
+docarray = "^0.41.0"
+wikipedia = "^1.4.0"
+openapi-pydantic = "^0.5.1"
+ipykernel = "^6.29.5"
+pysqlite3 = "^0.5.4"
+pysqlite3-binary = "^0.5.4"
 
 
 [tool.poetry.group.dev.dependencies]
