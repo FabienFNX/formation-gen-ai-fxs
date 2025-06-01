@@ -1,0 +1,9 @@
+{
+  "name": "GenAI Formation Mai 2025",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "features": {
+    "ghcr.io/devcontainers-contrib/features/pyenv:1": {
+      "version": "3.12.0"
+    }
+  }
+}
