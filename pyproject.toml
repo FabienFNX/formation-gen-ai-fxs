@@ -6,7 +6,7 @@ authors = ["Fabien CHERER <fcherer@finaxys.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "3.12.0"
+python = "3.12.10"
 openai = "^1.77.0"
 dotenv = "^0.9.9"
 langchain = "^0.3.25"
@@ -27,6 +27,8 @@ openapi-pydantic = "^0.5.1"
 ipykernel = "^6.29.5"
 pysqlite3 = "^0.5.4"
 pysqlite3-binary = "^0.5.4"
+openai-agents = "^0.0.16"
+graphviz = "^0.20.3"
 
 
 [tool.poetry.group.dev.dependencies]
