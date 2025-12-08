@@ -2,6 +2,8 @@ import streamlit as st
 import os
 import time
 from langchain_openai.chat_models import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.output_parsers import StrOutputParser
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -13,6 +15,16 @@ llm = ChatOpenAI(
     temperature=0.7,
     api_key=os.getenv("OPENAI_API_KEY")
 )
+
+# Create a prompt template for technical interview evaluation
+prompt = ChatPromptTemplate.from_messages([
+    ("system", "Tu es un assistant expert en recrutement technique. Ton rôle est d'évaluer les compétences techniques des candidats en posant des questions pertinentes et en analysant leurs réponses. Sois professionnel, encourageant et constructif."),
+    MessagesPlaceholder(variable_name="chat_history"),
+    ("human", "{input}")
+])
+
+# Create a simple chain using LCEL
+chain = prompt | llm | StrOutputParser()
 
 st.write("ChatBot permettant d'évaluer les compétences techniques des candidats lors d'entretiens.")
 
@@ -38,15 +50,20 @@ if prompt := st.chat_input("Saisissez votre texte ici..."):
         message_placeholder = st.empty()
         full_response = ""
         
-        # Get response from ChatOpenAI
-        response = llm.stream(st.session_state.messages)
+        # Prepare chat history for the chain (exclude the current message)
+        chat_history = [
+            {"role": msg["role"], "content": msg["content"]} 
+            for msg in st.session_state.messages[:-1]
+        ]
         
-        # Stream the response
-        for chunk in response:
-            if hasattr(chunk, 'content'):
-                full_response += chunk.content
-                # Add a blinking cursor to simulate typing
-                message_placeholder.markdown(full_response + "▌")
+        # Use the chain to get response with streaming
+        for chunk in chain.stream({
+            "chat_history": chat_history,
+            "input": prompt
+        }):
+            full_response += chunk
+            # Add a blinking cursor to simulate typing
+            message_placeholder.markdown(full_response + "▌")
         
         message_placeholder.markdown(full_response)
     
