@@ -5,6 +5,7 @@
 Lorsque l'environnement est démarré 
 
 ```bash
+pip install poetry
 poetry install --no-root
 ```
 

@@ -6,7 +6,7 @@ authors = ["Fabien CHERER <fcherer@finaxys.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "3.12.10"
+python = "^3.12"
 openai = "^1.77.0"
 dotenv = "^0.9.9"
 langchain = "^0.3.25"
