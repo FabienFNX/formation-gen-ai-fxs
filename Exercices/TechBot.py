@@ -1,9 +1,13 @@
 import streamlit as st
 import os
-import time
 from langchain_openai.chat_models import ChatOpenAI
+from langchain_openai.embeddings import OpenAIEmbeddings
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.output_parsers import StrOutputParser
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_community.vectorstores import Chroma
+from langchain_core.runnables import RunnablePassthrough
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -16,34 +20,68 @@ llm = ChatOpenAI(
     api_key=os.getenv("OPENAI_API_KEY")
 )
 
-# 1) Configurer le moteur d'embedding et la base de vecteurs
+# Initialize embeddings
+embeddings = OpenAIEmbeddings(api_key=os.getenv("OPENAI_API_KEY"))
 
-
+# Initialize RAG components
 @st.cache_resource
 def load_vectorstore():
     """Load and process the Git cheat sheet PDF into a vector store"""
+    # Load the PDF
+    pdf_path = os.path.join(os.path.dirname(__file__), "github-git-cheat-sheet.pdf")
+    loader = PyPDFLoader(pdf_path)
+    documents = loader.load()
+    
+    # Split documents
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000,
+        chunk_overlap=200
+    )
+    splits = text_splitter.split_documents(documents)
+    
+    # Create vector store
+    vectorstore = Chroma.from_documents(
+        documents=splits,
+        embedding=embeddings,
+        persist_directory="./chroma_db"
+    )
+    
+    return vectorstore
 
-    # 2) Charger le contenu du PDF
+# Load the vectorstore
+vectorstore = load_vectorstore()
+retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
 
-    # 3) Utiliser un splitter pour découper les documents
+def format_docs(docs):
+    """Format retrieved documents for context"""
+    return "\n\n".join(doc.page_content for doc in docs)
 
-    # 4) Intégrer les chunks dans une base de vecteurs
-
-# 5) Créer un retriever à partir de la base de vecteurs
-
-# 6) Modifier le prompt pour inclure les informations récupérées depuis la base de données vectorielle
-
-# Create a prompt template for technical interview evaluation
+# Create a prompt template for technical interview evaluation with RAG
 prompt = ChatPromptTemplate.from_messages([
-    ("system", "Tu es un assistant expert en recrutement technique. Ton rôle est d'évaluer les compétences techniques des candidats en posant des questions pertinentes et en analysant leurs réponses. Sois professionnel, encourageant et constructif."),
+    ("system", """Tu es un assistant expert en recrutement technique spécialisé en Git/GitHub. 
+    Ton rôle est d'évaluer les compétences techniques des candidats en posant des questions pertinentes 
+    et en analysant leurs réponses en les comparant avec la documentation officielle fournie.
+    
+    Utilise le contexte suivant pour vérifier la précision des réponses des candidats:
+    {context}
+    
+    Sois professionnel, encourageant et constructif. Si la réponse du candidat est correcte, 
+    félicite-le. Si elle est incorrecte ou incomplète, fournis des corrections basées sur la documentation."""),
     MessagesPlaceholder(variable_name="chat_history"),
     ("human", "{input}")
 ])
 
-# 7) Modifier la chaîne pour utiliser le retriever et fournir des réponses basées sur les documents intégrés
-
-# Create a simple chain using LCEL
-chain = prompt | llm | StrOutputParser()
+# Create RAG chain using LCEL
+chain = (
+    {
+        "context": lambda x: format_docs(retriever.invoke(x["input"])),
+        "chat_history": lambda x: x["chat_history"],
+        "input": lambda x: x["input"]
+    }
+    | prompt 
+    | llm 
+    | StrOutputParser()
+)
 
 st.write("ChatBot permettant d'évaluer les compétences techniques des candidats lors d'entretiens.")
 
