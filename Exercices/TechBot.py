@@ -16,12 +16,31 @@ llm = ChatOpenAI(
     api_key=os.getenv("OPENAI_API_KEY")
 )
 
+# 1) Configurer le moteur d'embedding et la base de vecteurs
+
+
+@st.cache_resource
+def load_vectorstore():
+    """Load and process the Git cheat sheet PDF into a vector store"""
+
+    # 2) Charger le contenu du PDF
+
+    # 3) Utiliser un splitter pour découper les documents
+
+    # 4) Intégrer les chunks dans une base de vecteurs
+
+# 5) Créer un retriever à partir de la base de vecteurs
+
+# 6) Modifier le prompt pour inclure les informations récupérées depuis la base de données vectorielle
+
 # Create a prompt template for technical interview evaluation
 prompt = ChatPromptTemplate.from_messages([
     ("system", "Tu es un assistant expert en recrutement technique. Ton rôle est d'évaluer les compétences techniques des candidats en posant des questions pertinentes et en analysant leurs réponses. Sois professionnel, encourageant et constructif."),
     MessagesPlaceholder(variable_name="chat_history"),
     ("human", "{input}")
 ])
+
+# 7) Modifier la chaîne pour utiliser le retriever et fournir des réponses basées sur les documents intégrés
 
 # Create a simple chain using LCEL
 chain = prompt | llm | StrOutputParser()
