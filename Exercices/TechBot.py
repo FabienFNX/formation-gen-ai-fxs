@@ -1,24 +1,15 @@
 import streamlit as st
 import os
-from langchain_openai.chat_models import ChatOpenAI
+import asyncio
 from langchain_openai.embeddings import OpenAIEmbeddings
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.output_parsers import StrOutputParser
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
-from langchain_core.runnables import RunnablePassthrough
 from dotenv import load_dotenv
+from agents import Agent, Runner, function_tool
 
 # Load environment variables
 load_dotenv()
-
-# Initialize ChatOpenAI
-llm = ChatOpenAI(
-    model="gpt-3.5-turbo",
-    temperature=0.7,
-    api_key=os.getenv("OPENAI_API_KEY")
-)
 
 # Initialize embeddings
 embeddings = OpenAIEmbeddings(api_key=os.getenv("OPENAI_API_KEY"))
@@ -56,32 +47,14 @@ def format_docs(docs):
     """Format retrieved documents for context"""
     return "\n\n".join(doc.page_content for doc in docs)
 
-# Create a prompt template for technical interview evaluation with RAG
-prompt = ChatPromptTemplate.from_messages([
-    ("system", """Tu es un assistant expert en recrutement technique spécialisé en Git/GitHub. 
-    Ton rôle est d'évaluer les compétences techniques des candidats en posant des questions pertinentes 
-    et en analysant leurs réponses en les comparant avec la documentation officielle fournie.
-    
-    Utilise le contexte suivant pour vérifier la précision des réponses des candidats:
-    {context}
-    
-    Sois professionnel, encourageant et constructif. Si la réponse du candidat est correcte, 
-    félicite-le. Si elle est incorrecte ou incomplète, fournis des corrections basées sur la documentation."""),
-    MessagesPlaceholder(variable_name="chat_history"),
-    ("human", "{input}")
-])
+# 1) Créer une fonction qui appelle le  RAG tool
+@function_tool
+def search_git_documentation(query: str) -> str:
+    ## A définir
+    print("Hello")
 
-# Create RAG chain using LCEL
-chain = (
-    {
-        "context": lambda x: format_docs(retriever.invoke(x["input"])),
-        "chat_history": lambda x: x["chat_history"],
-        "input": lambda x: x["input"]
-    }
-    | prompt 
-    | llm 
-    | StrOutputParser()
-)
+# 2) Créer un agent qui appelle le RAG tool
+ 
 
 st.write("ChatBot permettant d'évaluer les compétences techniques des candidats lors d'entretiens.")
 
@@ -94,6 +67,22 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
+# Async function to run the agent
+async def run_agent(user_input: str, chat_history: list) -> str:
+    """Run the SkillsAgent with the given input and chat history"""
+    # Format conversation history for context
+    history_context = ""
+    if chat_history:
+        history_context = "\n\nHistorique de la conversation:\n"
+        for msg in chat_history:
+            role = "Utilisateur" if msg["role"] == "user" else "Assistant"
+            history_context += f"{role}: {msg['content']}\n"
+    
+    full_input = f"{history_context}\n\nNouvelle question de l'utilisateur: {user_input}"
+    
+    result = await Runner.run(skills_agent, full_input)
+    return result.final_output
+
 # Accept user input
 if prompt := st.chat_input("Saisissez votre texte ici..."):
     # Add user message to chat history
@@ -105,22 +94,16 @@ if prompt := st.chat_input("Saisissez votre texte ici..."):
     # Display assistant response in chat message container
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
-        full_response = ""
         
-        # Prepare chat history for the chain (exclude the current message)
+        # Prepare chat history for the agent (exclude the current message)
         chat_history = [
             {"role": msg["role"], "content": msg["content"]} 
             for msg in st.session_state.messages[:-1]
         ]
         
-        # Use the chain to get response with streaming
-        for chunk in chain.stream({
-            "chat_history": chat_history,
-            "input": prompt
-        }):
-            full_response += chunk
-            # Add a blinking cursor to simulate typing
-            message_placeholder.markdown(full_response + "▌")
+        # Run the agent asynchronously
+        with st.spinner("Recherche en cours..."):
+            full_response = asyncio.run(run_agent(prompt, chat_history))
         
         message_placeholder.markdown(full_response)
     
